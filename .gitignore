@@ -1,0 +1,14 @@
+# Build artifacts
+target/
+dist/
+*.log
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Fresh / herdr local state
+.fresh/
+*.tmp
