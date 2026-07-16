@@ -1,39 +1,26 @@
 # herdr-fresh — Project Plan
 
-**A herdr plugin that runs [Fresh](https://getfresh.dev), the terminal IDE, as a first-class
-file viewer *and* editor inside a herdr pane.**
+**A herdr plugin that runs [Fresh](https://getfresh.dev), the terminal IDE, as a file viewer
+*and* editor inside a herdr pane.**
 
-Inspired by [`smarzban/herdr-file-viewer`](https://github.com/smarzban/herdr-file-viewer),
-but where that project *builds* a read-only viewer from scratch (~11k lines of Rust), this
-project *delegates* to Fresh — an existing, full-featured terminal editor — and ships only the
-thin herdr integration layer around it. Viewer **plus** editor, LSP, Git review, search/replace,
-and remote editing, with almost no code of our own to maintain.
+The plugin ships only the thin integration layer around Fresh — a manifest, a few launcher
+scripts, and config — and lets Fresh provide the editor itself: viewing, editing, LSP, Git
+review, search/replace, and remote editing, with almost no code of our own to maintain.
 
 ---
 
 ## 1. Motivation
 
-### 1.1 The reference project
+This is a personal itch-solution. I wanted a real editor living inside a herdr pane — one that
+can actually edit, not just view — with the features I already rely on: LSP, Git review,
+multi-cursor, project-wide search/replace, and remote editing over SSH. [Fresh](https://getfresh.dev)
+is exactly that editor and it runs in a terminal.
 
-`herdr-file-viewer` is a git-aware, **read-only** TUI that herdr opens in a split pane: a
-directory tree on the left, and per-file the "right view" on the right (diff / rendered markdown /
-syntax-highlighted code). It is a single in-process ratatui application (~11k lines of Rust) that
-owns both columns and delegates rendering to `glow` / `delta` / `bat`. It never mutates files.
+So instead of writing an editor, this project writes a **launcher**: a herdr plugin whose entire
+job is to open Fresh in the right place, wire it into herdr's workspace/keybinding model, and
+expose the one capability I most want — *"open this file at this line in my editor pane, now."*
 
-Its strengths: safe on untrusted repos, keyboard-first, git woven throughout, opens beside your
-work in one keypress.
-
-Its limits — **by design**:
-
-- **Read-only.** You cannot edit. Hand-off to `$EDITOR` is a one-way exit.
-- **A bespoke TUI** that must reimplement tree, finder, search, help, layout, mouse hit-testing,
-  and rendering delegation — all of which a real editor already has.
-- **No LSP, no multi-cursor, no in-place refactors, no persistent editing session.**
-
-### 1.2 The opportunity
-
-[Fresh](https://getfresh.dev) is a mature terminal IDE that *already* provides everything the
-file-viewer painstakingly rebuilt, and much more:
+What Fresh already provides (so we don't have to):
 
 - Instant startup, multi-GB files, small memory footprint.
 - Git review & diff (staged/unstaged/untracked, per-hunk stage/discard, line comments, side-by-side).
@@ -42,15 +29,6 @@ file-viewer painstakingly rebuilt, and much more:
 - **Detachable named daemons** that survive terminal disconnects (`fresh -a <name>`).
 - **Remote editing over SSH** with background reconnect and patch-only saves.
 - Themes, i18n, TypeScript plugins (sandboxed QuickJS).
-
-So instead of writing a viewer, we write a **launcher**: a herdr plugin whose entire job is to
-open Fresh in the right place, wire it into herdr's workspace/keybinding model, and expose the
-one capability herdr users most want — *"open this file at this line in my editor pane, now."*
-
-### 1.3 One-line thesis
-
-> `herdr-file-viewer` re-implements a viewer inside a herdr pane. **herdr-fresh** puts a real
-> editor inside a herdr pane, and ships only the glue.
 
 ---
 
@@ -62,21 +40,19 @@ one capability herdr users most want — *"open this file at this line in my edi
 2. One keypress opens Fresh in a **split** beside the current pane.
 3. One keypress opens Fresh in its own **tab** (idempotent: focus if already open).
 4. A **"open file at line"** action so herdr / other tools can push `path:line:col` into the
-   *already-running* Fresh pane (the differentiator vs. the read-only viewer).
+   *already-running* Fresh pane.
 5. **Persistent editing sessions**: one Fresh daemon per herdr workspace, surviving pane
    close/reattach.
 6. Optional: register Fresh as `$EDITOR` / `$GIT_EDITOR` for herdr's agent panes (`fresh --wait`).
-7. Read-only-safe defaults respected: opening an untrusted repo should honor Fresh's Workspace
-   Trust model.
-8. Cross-platform: Linux + macOS first-class; Windows preview (mirroring the reference project's
-   approach).
+7. Honor Fresh's Workspace Trust model when opening untrusted repos.
+8. Cross-platform: Linux + macOS first-class; Windows preview.
 
 ### 2.2 Non-Goals (v1)
 
 - We do **not** reimplement any editor feature. If Fresh can't do it, it's out of scope.
 - We do **not** fork or patch Fresh. We integrate via its documented CLI/daemon surface only.
 - We do **not** ship Fresh's binary in-repo. The build step installs/locates it.
-- No custom rendering, no ratatui, no bespoke TUI. (That's the whole point.)
+- No custom rendering, no bespoke TUI. Fresh is the UI.
 
 ---
 
@@ -85,8 +61,6 @@ one capability herdr users most want — *"open this file at this line in my edi
 Verified against **herdr 0.7.0** and **fresh 0.4.1** installed on the dev machine.
 
 ### 3.1 herdr plugin model
-
-From the reference `herdr-plugin.toml` and `herdr plugin --help`:
 
 - A plugin is a repo with a **`herdr-plugin.toml`** manifest declaring:
   - `id`, `name`, `version`, `description`, `min_herdr_version`, `platforms`.
@@ -104,10 +78,10 @@ From the reference `herdr-plugin.toml` and `herdr plugin --help`:
   - `herdr tab <subcommand>` for the tab variant
   - `herdr plugin list --json` (locate our own plugin root; needed on Windows)
   - `herdr plugin action invoke <id> --plugin <plugin_id>`
-- Config keybinding pattern (from the reference README):
+- Config keybinding pattern:
   ```toml
   [[keys.command]]
-  key = "prefix+f"
+  key = "prefix+e"
   type = "shell"
   command = "herdr plugin action invoke open-fresh --plugin herdr-fresh"
   ```
@@ -135,11 +109,11 @@ From `fresh --help` and `fresh --cmd daemon`:
 2. **`daemon open-file` needs the daemon to already exist.** So "open file at line" must
    (a) ensure the workspace's Fresh pane is open (invoke `open-fresh` if the daemon isn't in
    `daemon list`), then (b) `daemon open-file`.
-3. **Windows relative-command spawn is broken in herdr** (documented in the reference manifest:
-   `CreateProcessW` resolves relative program against herdr's own dir; herdr reports plugin root
-   as a `\\?\` verbatim path and doesn't append `.exe`). Mirror the reference project: Windows
-   actions locate the launcher by absolute path via `herdr plugin list --json`, and there is no
-   Windows `[[panes]]` entry.
+3. **Windows relative-command spawn is broken in herdr** (documented in the herdr plugin
+   ecosystem): `CreateProcessW` resolves relative program against herdr's own dir; herdr reports
+   plugin root as a `\\?\` verbatim path and doesn't append `.exe`. So Windows actions locate the
+   launcher by absolute path via `herdr plugin list --json`, and there is no Windows `[[panes]]`
+   entry.
 4. **Duplicate action ids are rejected at load regardless of platform** — so Windows actions get
    `-windows`-suffixed ids.
 
@@ -184,7 +158,7 @@ scripts/open-file-in-fresh.sh  <path:line:col>
 herdr-fresh/
 ├── PLAN.md                       ← this document
 ├── README.md                     ← front door (install, keybindings, quick start)
-├── LICENSE                       ← MIT (matches reference project; OSS-friendly)
+├── LICENSE                       ← MIT
 ├── herdr-plugin.toml             ← the manifest
 ├── config.example.toml           ← optional plugin config (daemon naming, editor cmd, keys)
 ├── scripts/
@@ -201,7 +175,7 @@ herdr-fresh/
 │   ├── usage.md                  ← split vs tab, open-at-line, daemon lifecycle
 │   ├── configuration.md          ← config.toml reference + [keys] remap
 │   ├── editor-integration.md     ← Fresh as $EDITOR / core.editor in herdr agent panes
-│   ├── windows.md                ← preview specifics (mirrors reference)
+│   ├── windows.md                ← preview specifics
 │   └── architecture.md
 ├── .github/
 │   ├── workflows/ci.yml          ← shellcheck + manifest lint + install smoke test
@@ -267,7 +241,7 @@ title = "Open file in Fresh"
 description = "Push path:line:col into the running Fresh daemon for this workspace."
 command = ["bash", "scripts/open-file-in-fresh.sh"]
 
-# … -windows-suffixed variants mirror the reference project (absolute-path launcher via plugin list --json).
+# … -windows-suffixed variants use an absolute-path launcher located via `plugin list --json`.
 ```
 
 > Exact keys (`placement`, pane-command semantics, action-arg passing) will be confirmed against
@@ -278,8 +252,8 @@ command = ["bash", "scripts/open-file-in-fresh.sh"]
 
 ## 6. Milestones
 
-### M0 — Repo bootstrap  ✅ (this commit)
-- Create public GitHub repo, MIT license, this PLAN.md, README stub, `.gitignore`.
+### M0 — Repo bootstrap  ✅ (done)
+- Create repo, MIT license, this PLAN.md, README, `.gitignore`.
 
 ### M1 — Proof of concept: Fresh in a split
 - `herdr-plugin.toml` with `open-fresh` action + `scripts/open-fresh.sh`.
@@ -289,10 +263,9 @@ command = ["bash", "scripts/open-file-in-fresh.sh"]
 - **Exit criteria:** one keypress → Fresh editing pane beside my work; close & reopen reattaches.
 
 ### M2 — Tab variant + idempotent focus
-- `open-fresh-tab` with focus-if-already-open (mirror reference tab idempotency via
-  `herdr tab`/`pane list`).
+- `open-fresh-tab` with focus-if-already-open (via `herdr tab`/`pane list`).
 
-### M3 — Open-file-at-line (the differentiator)
+### M3 — Open-file-at-line
 - `open-file-in-fresh.sh`: ensure-daemon → `daemon open-file` → focus pane.
 - Ship a helper (`herdr-fresh open <path:line>`) so agents/scripts/other plugins can call it.
 - **Exit criteria:** from any pane, "open src/main.rs:42 in Fresh" lands on line 42 live.
@@ -302,15 +275,13 @@ command = ["bash", "scripts/open-file-in-fresh.sh"]
 - Document + optionally auto-suggest `git config core.editor "fresh --wait"` for herdr agent panes.
 
 ### M5 — Cross-platform + CI
-- Windows `.ps1` launchers + `-windows` action ids (mirror reference constraints).
+- Windows `.ps1` launchers + `-windows` action ids.
 - `install.sh`/`install.ps1` build step: detect Fresh, else run the official installer, else
   clear error.
 - CI: shellcheck, PowerShell lint, manifest TOML validation, headless install smoke test.
 
 ### M6 — Docs + v0.1.0 release
-- Fill `docs/`, finalize README, tag `v0.1.0`, produce prebuilt-free release (no binary needed —
-  we install Fresh).
-- Submit/announce (herdr plugin ecosystem, Fresh Discord).
+- Fill `docs/`, finalize README, tag `v0.1.0` (no binary needed — we install Fresh).
 
 ### Post-v1 backlog
 - SSH remote-edit action (`fresh deploy@host:/path`) surfaced as a herdr action.
@@ -326,33 +297,19 @@ command = ["bash", "scripts/open-file-in-fresh.sh"]
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| herdr pane-command / action-arg semantics differ from the reference | Med | M1 validates against real herdr 0.7.0 via `plugin link` before writing more scripts |
+| herdr pane-command / action-arg semantics differ from expectations | Med | M1 validates against real herdr 0.7.0 via `plugin link` before writing more scripts |
 | Daemon creation needs a TTY (gotcha #1) | Confirmed | Launch Fresh inside the pane PTY, never headless; `open-file` only targets existing daemons |
 | Two panes racing to create the same named daemon | Low | Check `daemon list` first; Fresh daemon names are idempotent attach targets |
-| Windows spawn quirks (gotcha #3) | Med | Mirror the reference project's absolute-path launcher + no Windows `[[panes]]` |
+| Windows spawn quirks (gotcha #3) | Med | Absolute-path launcher + no Windows `[[panes]]` |
 | Fresh not installed at action time | Med | `[[build]]` install step + runtime `command -v fresh` guard with a friendly herdr notification |
 | Fresh CLI surface changes across versions | Low | Pin tested `fresh` version range in README; feature-detect `--cmd daemon` subcommands |
-| Untrusted-repo safety expectations (reference is hardened) | Med | Lean on Fresh Workspace Trust; document that Fresh is an *editor* (can write), unlike the read-only viewer; SECURITY.md states the model plainly |
+| Untrusted-repo safety | Med | Lean on Fresh Workspace Trust; SECURITY.md states the model plainly |
 
-## 8. Comparison table (for README)
+---
 
-| | herdr-file-viewer | **herdr-fresh** |
-|---|---|---|
-| Role | Read-only viewer | Viewer **+ editor** |
-| Code size | ~11k lines Rust | Thin scripts + manifest |
-| Rendering | Custom ratatui + glow/delta/bat | Fresh (full IDE) |
-| Edit files | No (hand-off only) | Yes |
-| LSP | No | Yes |
-| Git | Status tree + diff view | Full review/stage/diff |
-| Persistent session | No | Yes (Fresh daemon) |
-| Remote (SSH) | No | Yes (Fresh SSH) |
-| Open-at-line into live pane | No | **Yes** |
-| Untrusted-repo hardening | First-class | Via Fresh Workspace Trust |
+## 8. License
 
-## 9. License & OSS
-
-- **MIT** (matches the reference project and the herdr plugin ecosystem norm).
-- Public repo → free GitHub Actions CI, Issues/PR templates, Dependabot, community health files.
+- **MIT.**
 - Conventional Commits; `CHANGELOG.md` from tags.
 - Not affiliated with Fresh or herdr; an independent integration. Trademarks belong to their owners.
 

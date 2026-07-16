@@ -1,38 +1,34 @@
 # herdr-fresh
 
 **A [herdr](https://github.com/smarzban/herdr-file-viewer) plugin that runs
-[Fresh](https://getfresh.dev), the terminal IDE, as a file viewer *and* editor inside a herdr
+[Fresh](https://getfresh.dev), the terminal IDE, as a file viewer and editor inside a herdr
 pane.**
 
-Inspired by [`smarzban/herdr-file-viewer`](https://github.com/smarzban/herdr-file-viewer) — but
-instead of building a read-only viewer from scratch, herdr-fresh delegates to Fresh, a complete
-terminal editor, and ships only the thin herdr integration layer. You get a real editor (LSP,
-Git review, multi-cursor, search/replace, remote editing) in a split beside your work, plus the
-ability to push `path:line` into a live editor pane from anywhere.
+Open Fresh in a split beside your work (or in its own tab), keep a persistent editing session
+per workspace, and push `path:line` straight into the live editor pane from anywhere.
 
 > **Status: early / planning.** See **[PLAN.md](PLAN.md)** for the full design and roadmap.
 > The plugin is not yet installable; this repo currently holds the plan and scaffolding.
 
 ---
 
-## Why
+## Why this exists
 
-`herdr-file-viewer` is a git-aware, **read-only** TUI (~11k lines of Rust) that reimplements a
-tree + content viewer inside a herdr pane. It's excellent at what it does — but it can't edit,
-has no LSP, and rebuilds features a real editor already has.
+This is a personal itch-solution: I wanted a real editor — not just a viewer — living in a herdr
+pane, with LSP, Git review, multi-cursor, search/replace, and remote editing, without leaving my
+terminal workspace. Fresh already is that editor. So rather than build an editor, herdr-fresh
+ships the thin glue that wires Fresh into herdr's pane, tab, and keybinding model. Sharing it in
+case it's useful to anyone else.
 
-**herdr-fresh** takes the opposite approach: put a real editor in the pane and ship only the glue.
+## What it does
 
-| | herdr-file-viewer | **herdr-fresh** |
-|---|---|---|
-| Role | Read-only viewer | Viewer **+ editor** |
-| Code size | ~11k lines Rust | Thin scripts + manifest |
-| Edit files | Hand-off only | Yes |
-| LSP / multi-cursor | No | Yes |
-| Git | Status tree + diff | Full review / stage / diff |
-| Persistent session | No | Yes (Fresh daemon) |
-| Remote (SSH) | No | Yes |
-| Open file:line into live pane | No | **Yes** |
+- Open Fresh in a **split** beside the current pane with one keypress.
+- Open Fresh in its own **tab** (focus it if it's already open).
+- Push **`path:line:col`** into the running Fresh session for the workspace — from any pane,
+  agent, or script.
+- Keep a **persistent editing session per workspace** (a named Fresh daemon) that survives pane
+  close and reattach.
+- Optionally use Fresh as your `$EDITOR` / `core.editor` inside herdr agent panes.
 
 ## Planned quick start
 
