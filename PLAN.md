@@ -329,8 +329,22 @@ command = ["bash", "scripts/open-file-in-fresh.sh"]
   syntax/PSScriptAnalyzer pass and a real `herdr plugin link` run on Windows — deferred to CI
   and/or a Windows-capable follow-up session.
 
-### M6 — Docs + v0.1.0 release
-- Fill `docs/`, finalize README, tag `v0.1.0` (no binary needed — we install Fresh).
+### M6 — Docs + v0.1.0 release  ✅ (done)
+- Filled in `docs/install.md`, `docs/usage.md`, `docs/architecture.md` (previously referenced
+  in §4.1's layout but not yet written); `docs/configuration.md`, `docs/editor-integration.md`,
+  `docs/windows.md` already existed from M4/M5.
+- Added the remaining §4.1 layout files that didn't exist yet: `AGENTS.md`, `CONTRIBUTING.md`,
+  `SECURITY.md`, `.github/ISSUE_TEMPLATE/{bug_report,feature_request}.md`,
+  `.github/PULL_REQUEST_TEMPLATE.md`.
+- README rewritten from "planned quick start" to a real quick start + a documentation index
+  linking every `docs/` page, PLAN.md, and the new contributor/security docs; status line
+  updated from "proof of concept" to "v0.1.0".
+- Tagged `v0.1.0` (manifest `version` was already `0.1.0` from the initial scaffold — no bump
+  needed). No binary artifact attached to the release; herdr installs Fresh itself via
+  `scripts/install.sh`/`install.ps1`.
+- **Verified locally:** every new/changed bash script still passes `bash -n`; `herdr-plugin.toml`
+  still parses with the same zero-duplicate-action-id result as M5 (docs-only milestone, no
+  manifest/script logic changed).
 
 ### Post-v1 backlog
 - SSH remote-edit action (`fresh deploy@host:/path`) surfaced as a herdr action.

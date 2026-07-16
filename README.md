@@ -7,11 +7,11 @@ pane.**
 Open Fresh in a split beside your work (or in its own tab), keep a persistent editing session
 per workspace, and push `path:line` straight into the live editor pane from anywhere.
 
-> **Status: proof of concept, cross-platform preview.** Split, tab, and open-file-at-line all
-> verified locally against real herdr 0.7.0 + fresh 0.4.1 via `herdr plugin link` on Linux.
-> Windows `.ps1` launchers exist and are CI-linted (see [docs/windows.md](docs/windows.md)) but
-> haven't had an equivalent real-herdr verification pass yet. See **[PLAN.md](PLAN.md)** for the
-> full design, verification notes, and remaining milestones (docs, release).
+> **Status: v0.1.0, cross-platform preview.** Split, tab, and open-file-at-line all verified
+> locally against real herdr 0.7.0 + fresh 0.4.1 via `herdr plugin link` on Linux. Windows
+> `.ps1` launchers exist and are CI-linted (see [docs/windows.md](docs/windows.md)) but haven't
+> had an equivalent real-herdr verification pass yet. See **[PLAN.md](PLAN.md)** for the full
+> design, verification notes, and milestone history.
 
 ---
 
@@ -33,12 +33,15 @@ case it's useful to anyone else.
   close and reattach.
 - Optionally use Fresh as your `$EDITOR` / `core.editor` inside herdr agent panes.
 
-## Planned quick start
+## Quick start
 
 ```bash
 # Install the plugin (installs Fresh if needed):
 herdr plugin install rvalledorjr/herdr-fresh
 ```
+
+See [docs/install.md](docs/install.md) for the full walkthrough (verification steps, uninstall,
+optional config/editor-integration).
 
 Bind keys in `~/.config/herdr/config.toml`:
 
@@ -62,7 +65,15 @@ current preview caveats.
 
 ## Documentation
 
-Full design, integration seams, gotchas, milestones and risks live in **[PLAN.md](PLAN.md)**.
+- [docs/install.md](docs/install.md) — install, verify, uninstall
+- [docs/usage.md](docs/usage.md) — split vs. tab, open-file-at-line, daemon lifecycle
+- [docs/configuration.md](docs/configuration.md) — `config.toml` reference
+- [docs/editor-integration.md](docs/editor-integration.md) — Fresh as `$EDITOR`/`core.editor`
+- [docs/windows.md](docs/windows.md) — Windows preview specifics
+- [docs/architecture.md](docs/architecture.md) — how the pieces fit together
+- [PLAN.md](PLAN.md) — full design, integration seams, gotchas, milestones and risks
+- [AGENTS.md](AGENTS.md) / [CONTRIBUTING.md](CONTRIBUTING.md) — contributor guidance
+- [SECURITY.md](SECURITY.md) — trust model, reporting a vulnerability
 
 ## License
 
