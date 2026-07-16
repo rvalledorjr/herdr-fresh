@@ -1,0 +1,70 @@
+# herdr-plugin.toml — manifest for the herdr-fresh plugin.
+#
+# Runs Fresh (https://getfresh.dev), the terminal IDE, as a real editor (not just a viewer)
+# inside a herdr pane. herdr-fresh ships no editor code of its own — only the launcher glue
+# that opens Fresh in the right place and keeps a persistent per-workspace editing session.
+#
+# Verified locally against herdr 0.7.0 and fresh 0.4.1 (see PLAN.md §3, §7 for the full
+# research trail). Two load-bearing facts drive this manifest's shape:
+#
+#   1. `fresh --cmd daemon new <name>` fails with `os error 6` (ENXIO) when spawned without a
+#      TTY (confirmed on this host). A daemon can only be created by running `fresh -a <name>`
+#      *inside* a real pane PTY — never from a headless action script. So the [[panes]] entry
+#      below runs `fresh -a <daemon>` directly as the pane's own process (herdr gives it a PTY),
+#      and the open-fresh launcher scripts only ever open/focus that pane — they never try to
+#      pre-create the daemon themselves.
+#   2. `fresh --cmd daemon open-file <name> <path:line:col>` only works once that daemon already
+#      exists (confirmed: it returns "Opened N file(s)" against a live daemon, silently n/a
+#      otherwise). So "open file at line" must ensure the workspace's Fresh pane is open first.
+#
+# Cross-platform packaging follows the same pattern already proven by the herdr-file-viewer
+# plugin installed on this host: platform-gated [[build]]/[[actions]] items, `-windows`-suffixed
+# action ids (herdr rejects duplicate ids across platforms), and no Windows [[panes]] entry
+# because herdr can't spawn a relative pane command on Windows (CreateProcessW resolves it
+# against herdr's own directory, not the plugin's). Windows support is deferred to M5; only
+# Linux/macOS actions are wired up here.
+
+id = "herdr-fresh"
+name = "herdr-fresh"
+version = "0.1.0"
+description = "Run Fresh, the terminal IDE, as a file viewer and editor inside a herdr pane."
+min_herdr_version = "0.7.0"
+platforms = ["linux", "macos", "windows"]
+
+# Build step herdr runs at install time: verify `fresh` is on PATH, else fail with a clear
+# error pointing at https://getfresh.dev (M5 will add an auto-install fallback).
+[[build]]
+platforms = ["linux", "macos"]
+command = ["/bin/sh", "scripts/install.sh"]
+
+# The Fresh pane. herdr performs the split placement on launch; the command runs INSIDE the
+# pane's own PTY, which is required for Fresh to create/attach its named daemon (gotcha #1).
+[[panes]]
+id = "fresh"
+title = "Fresh"
+placement = "split"
+command = ["bash", "scripts/run-fresh-daemon.sh"]
+
+[[actions]]
+id = "open-fresh"
+platforms = ["linux", "macos"]
+title = "Open Fresh (split)"
+description = "Open the Fresh editor in a split pane beside the current work."
+command = ["bash", "scripts/open-fresh.sh"]
+
+[[actions]]
+id = "open-fresh-tab"
+platforms = ["linux", "macos"]
+title = "Open Fresh (tab)"
+description = "Open Fresh in its own tab (switch to it if already open)."
+command = ["bash", "scripts/open-fresh-tab.sh"]
+
+[[actions]]
+id = "open-file-in-fresh"
+platforms = ["linux", "macos"]
+title = "Open file in Fresh"
+description = "Push path:line:col into the running Fresh daemon for this workspace, opening the pane first if needed."
+command = ["bash", "scripts/open-file-in-fresh.sh"]
+
+# Windows support (M5 backlog): -windows-suffixed action ids + absolute-path launchers via
+# `plugin list --json`, no Windows [[panes]] entry. Not yet implemented.

@@ -255,20 +255,33 @@ command = ["bash", "scripts/open-file-in-fresh.sh"]
 ### M0 — Repo bootstrap  ✅ (done)
 - Create repo, MIT license, this PLAN.md, README, `.gitignore`.
 
-### M1 — Proof of concept: Fresh in a split
-- `herdr-plugin.toml` with `open-fresh` action + `scripts/open-fresh.sh`.
-- `herdr plugin link ~/herdr-fresh` locally; bind `prefix+e`; verify Fresh opens in a split
-  attached to a per-workspace daemon.
-- Resolve the PTY/daemon-creation flow (gotcha #1) on real herdr.
-- **Exit criteria:** one keypress → Fresh editing pane beside my work; close & reopen reattaches.
+### M1 — Proof of concept: Fresh in a split  ✅ (done)
+- `herdr-plugin.toml` with `open-fresh` action + `scripts/open-fresh.sh` (+ `scripts/common.sh`,
+  `scripts/run-fresh-daemon.sh`, `scripts/install.sh`).
+- `herdr plugin link` verified locally against real herdr 0.7.0 + fresh 0.4.1: `open-fresh`
+  action opens a split pane, `fresh -a fresh-<workspace-id>` boots inside its PTY and registers
+  the named daemon (confirmed via `fresh --cmd daemon list`), and the pane self-labels so later
+  invocations find it (`herdr pane list` carries no title/command field, only an optional
+  `label` set via `pane rename`).
+- Gotcha #1 (daemon creation needs a TTY) confirmed and resolved: `fresh --cmd daemon new` fails
+  with `os error 6` headless; running `fresh -a <name>` inside the pane's own PTY works.
+- Re-invoking `open-fresh` while the pane is already open focuses it instead of opening a
+  duplicate (verified: pane count unchanged, second invocation exits with empty log output).
+- **Exit criteria met:** one action invocation → Fresh editing pane beside current work,
+  attached to a per-workspace daemon; re-invoking reattaches/focuses rather than duplicating.
 
-### M2 — Tab variant + idempotent focus
-- `open-fresh-tab` with focus-if-already-open (via `herdr tab`/`pane list`).
+### M2 — Tab variant + idempotent focus  ✅ (done)
+- `open-fresh-tab` with focus-if-already-open (via `herdr tab`/`pane list`), matching the Fresh
+  pane by its self-assigned `label`. Verified locally: no duplicate tab created on repeat
+  invocation.
 
-### M3 — Open-file-at-line
-- `open-file-in-fresh.sh`: ensure-daemon → `daemon open-file` → focus pane.
-- Ship a helper (`herdr-fresh open <path:line>`) so agents/scripts/other plugins can call it.
-- **Exit criteria:** from any pane, "open src/main.rs:42 in Fresh" lands on line 42 live.
+### M3 — Open-file-at-line  ✅ (done, core flow)
+- `open-file-in-fresh.sh`: ensure-daemon (invokes `open-fresh.sh` + polls `daemon list` if
+  missing) → `fresh --cmd daemon open-file <daemon> <target>` → focus pane via `pane zoom`.
+- Verified locally: `fresh --cmd daemon open-file fresh-wQ README.md:5` opens the file at line 5
+  in the live daemon.
+- Remaining: a standalone `herdr-fresh open <path:line>` helper for other plugins/agents to call
+  without going through `herdr plugin action invoke` (tracked for M4/M5).
 
 ### M4 — Config + editor integration
 - `config.example.toml`: daemon naming, custom `fresh` path/flags, keybinding hints.

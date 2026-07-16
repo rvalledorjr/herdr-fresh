@@ -7,8 +7,9 @@ pane.**
 Open Fresh in a split beside your work (or in its own tab), keep a persistent editing session
 per workspace, and push `path:line` straight into the live editor pane from anywhere.
 
-> **Status: early / planning.** See **[PLAN.md](PLAN.md)** for the full design and roadmap.
-> The plugin is not yet installable; this repo currently holds the plan and scaffolding.
+> **Status: proof of concept.** Split, tab, and open-file-at-line all verified locally against
+> real herdr 0.7.0 + fresh 0.4.1 via `herdr plugin link`. See **[PLAN.md](PLAN.md)** for the
+> full design, verification notes, and remaining milestones (config, Windows, CI, release).
 
 ---
 
