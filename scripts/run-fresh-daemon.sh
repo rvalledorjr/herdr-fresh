@@ -29,4 +29,7 @@ if [ -n "$self_pane_id" ]; then
   "$herdr_bin" pane rename "$self_pane_id" "$daemon" >/dev/null 2>&1 || true
 fi
 
-exec "$(fresh_bin)" -a "$daemon" $(fresh_args)
+# fresh_args returns a space-joined string; split it into an array here so the exec below can
+# quote the expansion (avoids SC2046 unquoted-word-splitting and unintended glob expansion).
+IFS=' ' read -r -a fresh_extra_args <<< "$(fresh_args)"
+exec "$(fresh_bin)" -a "$daemon" "${fresh_extra_args[@]}"
