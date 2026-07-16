@@ -7,9 +7,11 @@ pane.**
 Open Fresh in a split beside your work (or in its own tab), keep a persistent editing session
 per workspace, and push `path:line` straight into the live editor pane from anywhere.
 
-> **Status: proof of concept.** Split, tab, and open-file-at-line all verified locally against
-> real herdr 0.7.0 + fresh 0.4.1 via `herdr plugin link`. See **[PLAN.md](PLAN.md)** for the
-> full design, verification notes, and remaining milestones (config, Windows, CI, release).
+> **Status: proof of concept, cross-platform preview.** Split, tab, and open-file-at-line all
+> verified locally against real herdr 0.7.0 + fresh 0.4.1 via `herdr plugin link` on Linux.
+> Windows `.ps1` launchers exist and are CI-linted (see [docs/windows.md](docs/windows.md)) but
+> haven't had an equivalent real-herdr verification pass yet. See **[PLAN.md](PLAN.md)** for the
+> full design, verification notes, and remaining milestones (docs, release).
 
 ---
 
@@ -53,6 +55,10 @@ command = "herdr plugin action invoke open-fresh-tab --plugin herdr-fresh"
 ```
 
 Then `herdr server reload-config` and press your key.
+
+Windows uses the same actions under `-windows`-suffixed ids (`open-fresh-windows`,
+`open-fresh-tab-windows`) — see [docs/windows.md](docs/windows.md) for the full rundown and
+current preview caveats.
 
 ## Documentation
 

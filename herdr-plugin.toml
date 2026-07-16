@@ -21,8 +21,9 @@
 # plugin installed on this host: platform-gated [[build]]/[[actions]] items, `-windows`-suffixed
 # action ids (herdr rejects duplicate ids across platforms), and no Windows [[panes]] entry
 # because herdr can't spawn a relative pane command on Windows (CreateProcessW resolves it
-# against herdr's own directory, not the plugin's). Windows support is deferred to M5; only
-# Linux/macOS actions are wired up here.
+# against herdr's own directory, not the plugin's). Windows actions instead resolve this
+# plugin's absolute root via `herdr plugin list --json` (see scripts/common.ps1's
+# Resolve-PluginRoot) and do the split/tab + pane-run themselves (PLAN.md M5).
 
 id = "herdr-fresh"
 name = "herdr-fresh"
@@ -31,11 +32,16 @@ description = "Run Fresh, the terminal IDE, as a file viewer and editor inside a
 min_herdr_version = "0.7.0"
 platforms = ["linux", "macos", "windows"]
 
-# Build step herdr runs at install time: verify `fresh` is on PATH, else fail with a clear
-# error pointing at https://getfresh.dev (M5 will add an auto-install fallback).
+# Build step herdr runs at install time: verify `fresh` is on PATH, auto-installing it via the
+# official installer (Unix) / winget (Windows) if missing, else fail with a clear error pointing
+# at https://getfresh.dev.
 [[build]]
 platforms = ["linux", "macos"]
 command = ["/bin/sh", "scripts/install.sh"]
+
+[[build]]
+platforms = ["windows"]
+command = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/install.ps1"]
 
 # The Fresh pane. herdr performs the split placement on launch; the command runs INSIDE the
 # pane's own PTY, which is required for Fresh to create/attach its named daemon (gotcha #1).
@@ -66,5 +72,27 @@ title = "Open file in Fresh"
 description = "Push path:line:col into the running Fresh daemon for this workspace, opening the pane first if needed."
 command = ["bash", "scripts/open-file-in-fresh.sh"]
 
-# Windows support (M5 backlog): -windows-suffixed action ids + absolute-path launchers via
-# `plugin list --json`, no Windows [[panes]] entry. Not yet implemented.
+# Windows variants (PLAN.md M5): -windows-suffixed action ids (herdr rejects duplicate ids
+# across platforms even when platform-gated) + absolute-path .ps1 launchers. No Windows
+# [[panes]] entry — see file header, gotcha #3.
+
+[[actions]]
+id = "open-fresh-windows"
+platforms = ["windows"]
+title = "Open Fresh (split)"
+description = "Open the Fresh editor in a split pane beside the current work."
+command = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/open-fresh.ps1"]
+
+[[actions]]
+id = "open-fresh-tab-windows"
+platforms = ["windows"]
+title = "Open Fresh (tab)"
+description = "Open Fresh in its own tab (switch to it if already open)."
+command = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/open-fresh-tab.ps1"]
+
+[[actions]]
+id = "open-file-in-fresh-windows"
+platforms = ["windows"]
+title = "Open file in Fresh"
+description = "Push path:line:col into the running Fresh daemon for this workspace, opening the pane first if needed."
+command = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/open-file-in-fresh.ps1"]

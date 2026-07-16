@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  shellcheck:
+    name: shellcheck (bash launchers)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: './scripts'
+          severity: warning
+
+  manifest-lint:
+    name: herdr-plugin.toml validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate TOML syntax
+        run: |
+          python3 -c "
+          import tomllib
+          with open('herdr-plugin.toml', 'rb') as f:
+              data = tomllib.load(f)
+          print('parsed ok:', list(data.keys()))
+          "
+      - name: Check for duplicate action ids
+        run: |
+          python3 -c "
+          import tomllib
+          with open('herdr-plugin.toml', 'rb') as f:
+              data = tomllib.load(f)
+          ids = [a['id'] for a in data.get('actions', [])]
+          dupes = {i for i in ids if ids.count(i) > 1}
+          assert not dupes, f'duplicate action ids: {dupes}'
+          print('no duplicate action ids among:', ids)
+          "
+      - name: Check every action/pane/build command script exists
+        run: |
+          python3 -c "
+          import tomllib, os
+          with open('herdr-plugin.toml', 'rb') as f:
+              data = tomllib.load(f)
+          missing = []
+          for section in ('build', 'panes', 'actions'):
+              for item in data.get(section, []):
+                  cmd = item.get('command', [])
+                  for part in cmd:
+                      if part.startswith('scripts/') and not os.path.isfile(part):
+                          missing.append(part)
+          assert not missing, f'missing referenced scripts: {missing}'
+          print('all referenced scripts exist')
+          "
+
+  install-smoke-test:
+    name: headless install smoke test (linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install jq (already on runner, but be explicit)
+        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Install Fresh via the project's own installer
+        run: curl -fsSL https://raw.githubusercontent.com/sinelaw/fresh/refs/heads/master/scripts/install.sh | sh
+      - name: Put fresh on PATH for subsequent steps
+        run: echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - name: Run scripts/install.sh (the plugin's own [[build]] step)
+        run: /bin/sh scripts/install.sh
+      - name: Syntax-check every bash launcher (parse only, no execution)
+        run: |
+          for f in scripts/*.sh; do
+            echo "checking $f"
+            bash -n "$f"
+          done
+
+  powershell-lint:
+    name: PSScriptAnalyzer (windows launchers)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+      - name: Analyze scripts
+        shell: pwsh
+        run: |
+          $results = Invoke-ScriptAnalyzer -Path ./scripts -Recurse -Severity Warning,Error
+          $results | Format-Table -AutoSize
+          $errors = $results | Where-Object { $_.Severity -eq 'Error' }
+          if ($errors) {
+            Write-Error "PSScriptAnalyzer found $($errors.Count) error(s)."
+            exit 1
+          }

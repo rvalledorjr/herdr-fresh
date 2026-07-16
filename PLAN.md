@@ -301,11 +301,33 @@ command = ["bash", "scripts/open-file-in-fresh.sh"]
   config file degrades to all-defaults; `suggest-editor-integration.sh --local --yes` correctly
   sets and reports `core.editor` in a scratch repo.
 
-### M5 — Cross-platform + CI
-- Windows `.ps1` launchers + `-windows` action ids.
-- `install.sh`/`install.ps1` build step: detect Fresh, else run the official installer, else
-  clear error.
-- CI: shellcheck, PowerShell lint, manifest TOML validation, headless install smoke test.
+### M5 — Cross-platform + CI  ✅ (done)
+- `scripts/*.ps1` (`common.ps1`, `run-fresh-daemon.ps1`, `open-fresh.ps1`, `open-fresh-tab.ps1`,
+  `open-file-in-fresh.ps1`, `install.ps1`) mirror the bash launchers using PowerShell's built-in
+  `ConvertFrom-Json` (no `jq` dependency on Windows). Config-file TOML parsing still shells out
+  to `python`/`python3`'s stdlib `tomllib`, same trust model as Unix (never read from repo cwd).
+- `-windows`-suffixed action ids (`open-fresh-windows`, `open-fresh-tab-windows`,
+  `open-file-in-fresh-windows`) added to `herdr-plugin.toml`, each an absolute-path `.ps1`
+  launcher; still **no Windows `[[panes]]` entry** (gotcha #3) — `open-fresh.ps1` /
+  `open-fresh-tab.ps1` do the split/tab *and* the pane-run themselves, resolving this plugin's
+  absolute root via `herdr plugin list --json` (`Resolve-PluginRoot` in `common.ps1`).
+- `install.sh`/`install.ps1` build steps now auto-install Fresh when missing (Unix: pipes the
+  official `getfresh.dev` installer script; Windows: `winget install fresh-editor`), falling
+  back to a clear error pointing at https://getfresh.dev only if that also fails.
+- `.github/workflows/ci.yml`: shellcheck over `scripts/*.sh`, manifest TOML validation +
+  duplicate-action-id + referenced-script-exists checks, a headless install smoke test (installs
+  Fresh via its own installer, then runs `scripts/install.sh` and `bash -n`s every launcher), and
+  a PSScriptAnalyzer pass over `scripts/*.ps1`.
+- `docs/windows.md`: preview-status caveats, the three `-windows` action ids + keybinding
+  example, and known-untested paths (no independent TTY-gotcha reconfirmation on a real Windows
+  host yet, no `.ps1` `core.editor` helper).
+- **Verified locally** (dev host, no Windows/PowerShell available): `herdr-plugin.toml` parses
+  cleanly, has zero duplicate action ids among `['open-fresh', 'open-fresh-tab',
+  'open-file-in-fresh', 'open-fresh-windows', 'open-fresh-tab-windows',
+  'open-file-in-fresh-windows']`, and every `scripts/` path referenced by `[[build]]`/`[[panes]]`
+  /`[[actions]]` exists; every bash launcher passes `bash -n`. **Not yet verified:** PowerShell
+  syntax/PSScriptAnalyzer pass and a real `herdr plugin link` run on Windows — deferred to CI
+  and/or a Windows-capable follow-up session.
 
 ### M6 — Docs + v0.1.0 release
 - Fill `docs/`, finalize README, tag `v0.1.0` (no binary needed — we install Fresh).
