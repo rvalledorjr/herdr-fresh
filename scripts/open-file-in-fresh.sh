@@ -21,7 +21,7 @@ fi
 daemon="$(daemon_name)"
 
 daemon_exists() {
-  fresh --cmd daemon list 2>/dev/null | grep -qx "  $daemon"
+  "$(fresh_bin)" --cmd daemon list 2>/dev/null | grep -qx "  $daemon"
 }
 
 if ! daemon_exists; then
@@ -33,7 +33,7 @@ if ! daemon_exists; then
   done
 fi
 
-fresh --cmd daemon open-file "$daemon" "$target"
+"$(fresh_bin)" --cmd daemon open-file "$daemon" "$target"
 
 herdr_bin="${HERDR_BIN_PATH:-herdr}"
 panes_json="$("$herdr_bin" pane list 2>/dev/null || true)"

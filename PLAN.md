@@ -160,20 +160,21 @@ herdr-fresh/
 ├── README.md                     ← front door (install, keybindings, quick start)
 ├── LICENSE                       ← MIT
 ├── herdr-plugin.toml             ← the manifest
-├── config.example.toml           ← optional plugin config (daemon naming, editor cmd, keys)
+├── config.example.toml           ← optional plugin config (daemon naming, fresh_bin/fresh_args)
 ├── scripts/
 │   ├── install.sh                ← [[build]] unix: ensure `fresh` present (installer or check)
 │   ├── install.ps1               ← [[build]] windows
 │   ├── open-fresh.sh             ← action: split-pane launch
 │   ├── open-fresh-tab.sh         ← action: tab launch (idempotent focus-if-open)
 │   ├── open-file-in-fresh.sh     ← action: push file:line into live daemon
+│   ├── suggest-editor-integration.sh ← optional: git core.editor "fresh --wait" helper
 │   ├── open-fresh.ps1            ← windows variants …
 │   ├── open-fresh-tab.ps1
 │   └── open-file-in-fresh.ps1
 ├── docs/
 │   ├── install.md
 │   ├── usage.md                  ← split vs tab, open-at-line, daemon lifecycle
-│   ├── configuration.md          ← config.toml reference + [keys] remap
+│   ├── configuration.md          ← config.toml reference + fresh_bin/daemon_name
 │   ├── editor-integration.md     ← Fresh as $EDITOR / core.editor in herdr agent panes
 │   ├── windows.md                ← preview specifics
 │   └── architecture.md
@@ -283,9 +284,22 @@ command = ["bash", "scripts/open-file-in-fresh.sh"]
 - Remaining: a standalone `herdr-fresh open <path:line>` helper for other plugins/agents to call
   without going through `herdr plugin action invoke` (tracked for M4/M5).
 
-### M4 — Config + editor integration
-- `config.example.toml`: daemon naming, custom `fresh` path/flags, keybinding hints.
-- Document + optionally auto-suggest `git config core.editor "fresh --wait"` for herdr agent panes.
+### M4 — Config + editor integration  ✅ (done)
+- `config.example.toml` + `docs/configuration.md`: `fresh_bin`/`fresh_args` (custom Fresh path/
+  flags) and `daemon_name`/`daemon_name_prefix` (`per-workspace` (default) or `per-repo` naming).
+  Parsed via `python3`'s stdlib `tomllib` (no new binary dependency); missing/malformed/
+  no-python3 all degrade to defaults, matching herdr-file-viewer's config-loading conventions.
+  Only ever read from the herdr-provided `$HERDR_PLUGIN_CONFIG_DIR` (or `$XDG_CONFIG_HOME`/
+  `$HOME` fallback) — never from a repo's own cwd, so an untrusted repo can't override
+  `fresh_bin`/`fresh_args`.
+- `scripts/suggest-editor-integration.sh` + `docs/editor-integration.md`: opt-in helper that
+  prints the exact `git config (--global|--local) core.editor "fresh --wait"` command, shows any
+  existing value, and asks for confirmation (`--yes` to skip) before writing — never runs
+  automatically.
+- Verified locally: `daemon_name = "per-repo"`/`daemon_name_prefix`/`fresh_args` all round-trip
+  through `scripts/common.sh`'s `daemon_name`/`fresh_bin`/`fresh_args` helpers; a malformed
+  config file degrades to all-defaults; `suggest-editor-integration.sh --local --yes` correctly
+  sets and reports `core.editor` in a scratch repo.
 
 ### M5 — Cross-platform + CI
 - Windows `.ps1` launchers + `-windows` action ids.

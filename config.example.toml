@@ -1,0 +1,57 @@
+# herdr-fresh example configuration
+# =============================================================================
+#
+# HOW TO USE THIS FILE
+#
+#   1. Copy it into your config directory and RENAME it to `config.toml`:
+#
+#        Under herdr, run `herdr plugin config-dir herdr-fresh` to print the directory it
+#        belongs in. On Linux that directory is
+#          ~/.config/herdr/plugins/config/herdr-fresh/
+#        (provided as $HERDR_PLUGIN_CONFIG_DIR to every launcher script), so your config file
+#        becomes:
+#          ~/.config/herdr/plugins/config/herdr-fresh/config.toml
+#
+#        Standalone, outside herdr:
+#          ~/.config/herdr-fresh/config.toml
+#          (or $XDG_CONFIG_HOME/herdr-fresh/config.toml when that is set)
+#
+#   2. Uncomment and edit the lines you want, then re-invoke the `open-fresh` /
+#      `open-fresh-tab` action (a config change only takes effect for panes opened after the
+#      edit; it is not re-read by an already-running Fresh daemon).
+#
+# Every setting below is COMMENTED OUT, so copying this file as-is changes nothing. Reading the
+# file requires `python3` on PATH (used for its stdlib `tomllib` parser); without it, every key
+# just falls back to its default, same as a missing file. A malformed file is likewise ignored
+# whole, with every key falling back to its default — there is no partial-apply.
+#
+# Precedence: a config key always wins over the built-in default. There is no environment
+# variable fallback tier for any of these keys (unlike herdr-file-viewer's `editor`/`update_check`).
+
+# --- Fresh binary -------------------------------------------------------------
+
+# fresh_bin: which `fresh` executable to launch (absolute path, or a name resolved off PATH).
+# Useful when you keep a pinned/preview build of Fresh outside your normal PATH. Default: "fresh".
+#fresh_bin = "fresh"
+
+# fresh_args: extra CLI flags appended every time herdr-fresh launches `fresh -a <daemon>`
+# inside the pane (see PLAN.md §3.3 gotcha #1 — this is the ONLY place Fresh is ever started).
+# An array of strings, space-joined and passed as-is (no shell quoting/escaping is applied, so
+# avoid values containing spaces). Example: run Fresh in its restricted "safe" mode.
+# Default: [] (no extra flags).
+#fresh_args = ["--safe"]
+
+# --- Daemon naming (PLAN.md §4.2) ---------------------------------------------
+
+# daemon_name_prefix: prefix used when deriving the per-context Fresh daemon name
+# (`<prefix>-<id>`). Default: "fresh".
+#daemon_name_prefix = "fresh"
+
+# daemon_name: how the "<id>" part of the daemon name is derived.
+#   "per-workspace" (default) — one persistent Fresh daemon per herdr workspace id. Reopening
+#     the same workspace always reattaches to the same editor session.
+#   "per-repo"      — hash of the resolved working directory instead. Useful if you want the
+#     same repo checkout to reattach to the same Fresh session even when opened from a
+#     different herdr workspace (e.g. after recreating a workspace).
+# Default: "per-workspace"
+#daemon_name = "per-workspace"
