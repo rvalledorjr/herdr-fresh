@@ -7,6 +7,10 @@ The plugin ships only the thin integration layer around Fresh — a manifest, a 
 scripts, and config — and lets Fresh provide the editor itself: viewing, editing, LSP, Git
 review, search/replace, and remote editing, with almost no code of our own to maintain.
 
+> This document is the **design-of-record** (architecture, gotchas, milestone history).
+> Execution/work plans derived from it — task queues with statuses and acceptance criteria —
+> live in [`docs/plans/`](docs/plans/).
+
 ---
 
 ## 1. Motivation
