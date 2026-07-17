@@ -33,9 +33,12 @@ herdr → invokes action (keybinding)
           │
           ▼
    scripts/open-fresh.sh
-          │  reads HERDR_PLUGIN_CONTEXT_JSON (cwd, workspace id) + HERDR_BIN_PATH
+          │  reads HERDR_PLUGIN_CONTEXT_JSON (cwd, workspace/pane/tab id) + HERDR_BIN_PATH
           │  derives a stable daemon name: fresh-<workspace-id>
           │  checks `herdr pane list` for a pane labeled fresh-<workspace-id> in this tab
+          │  (matching is scoped to the invoking pane/tab from the context JSON, not to
+          │  whatever pane herdr's own CLI subprocess is globally focused on — required for
+          │  correct behavior when the action is invoked from a non-focused workspace)
           ▼
    found? → zoom/focus it, done.
    not found? → `herdr plugin pane open --entrypoint fresh --placement split --focus`

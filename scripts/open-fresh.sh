@@ -15,19 +15,23 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 daemon="$(daemon_name)"
 
 open_pane() {
+  # `plugin pane open --placement split` targets an existing pane, not "whatever herdr's CLI
+  # process is currently attached to" — pass the invoking pane explicitly (from the action's
+  # context JSON) or split placement silently lands in the wrong workspace when the action is
+  # invoked from a workspace other than the one the herdr CLI subprocess is focused on.
   exec "$herdr_bin" plugin pane open \
     --plugin herdr-fresh \
     --entrypoint fresh \
     --placement split \
     --direction right \
+    --target-pane "$current_pane_id" \
     --cwd "$(resolve_cwd)" \
     --focus
 }
 
 panes_json="$("$herdr_bin" pane list 2>/dev/null || true)"
-current_json="$("$herdr_bin" pane current 2>/dev/null || true)"
-current_pane_id="$(printf '%s' "$current_json" | jq -r '.result.pane.pane_id // empty' 2>/dev/null || true)"
-current_tab_id="$(printf '%s' "$current_json" | jq -r '.result.pane.tab_id // empty' 2>/dev/null || true)"
+current_pane_id="$(resolve_focused_pane_id)"
+current_tab_id="$(resolve_tab_id)"
 
 fresh_pane_id=""
 if [ -n "$panes_json" ] && [ -n "$current_tab_id" ]; then

@@ -12,18 +12,22 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 daemon="$(daemon_name)"
 
 open_tab() {
+  # `plugin pane open --placement tab` opens in whichever workspace herdr's CLI process is
+  # currently attached to unless told otherwise — pass the invoking workspace explicitly (from
+  # the action's context JSON), or the tab silently opens in the wrong workspace when invoked
+  # from somewhere other than wherever the herdr CLI subprocess happens to be focused.
   exec "$herdr_bin" plugin pane open \
     --plugin herdr-fresh \
     --entrypoint fresh \
     --placement tab \
+    --workspace "$current_workspace_id" \
     --cwd "$(resolve_cwd)" \
     --focus
 }
 
 panes_json="$("$herdr_bin" pane list 2>/dev/null || true)"
-current_json="$("$herdr_bin" pane current 2>/dev/null || true)"
-current_pane_id="$(printf '%s' "$current_json" | jq -r '.result.pane.pane_id // empty' 2>/dev/null || true)"
-current_workspace_id="$(printf '%s' "$current_json" | jq -r '.result.pane.workspace_id // empty' 2>/dev/null || true)"
+current_pane_id="$(resolve_focused_pane_id)"
+current_workspace_id="$(resolve_workspace_id)"
 
 match="$(printf '%s' "$panes_json" | jq -r --arg ws "$current_workspace_id" --arg d "$daemon" '
   (.result.panes // [])

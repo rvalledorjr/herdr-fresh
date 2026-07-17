@@ -126,6 +126,36 @@ resolve_workspace_id() {
   printf '%s' "$wid"
 }
 
+# Resolve the pane id the action was invoked from (the pane to split beside), from the
+# injected context JSON, falling back to `pane current` (works for local/interactive testing).
+# Actions run as a detached herdr CLI subprocess, so `pane current` alone reflects whatever pane
+# is *globally* focused across all workspaces — not necessarily the workspace the keybinding was
+# pressed in. Preferring the context's `focused_pane_id` is what keeps split placement targeted
+# at the invoking workspace instead of wherever herdr's CLI process happens to be attached.
+resolve_focused_pane_id() {
+  local pid=""
+  if [ -n "${HERDR_PLUGIN_CONTEXT_JSON:-}" ]; then
+    pid="$(printf '%s' "$HERDR_PLUGIN_CONTEXT_JSON" | jq -r '.focused_pane_id // empty' 2>/dev/null || true)"
+  fi
+  if [ -z "$pid" ]; then
+    pid="$("$herdr_bin" pane current 2>/dev/null | jq -r '.result.pane.pane_id // empty' 2>/dev/null || true)"
+  fi
+  printf '%s' "$pid"
+}
+
+# Resolve the tab id the action was invoked from, same rationale/fallback as
+# resolve_focused_pane_id() above.
+resolve_tab_id() {
+  local tid=""
+  if [ -n "${HERDR_PLUGIN_CONTEXT_JSON:-}" ]; then
+    tid="$(printf '%s' "$HERDR_PLUGIN_CONTEXT_JSON" | jq -r '.tab_id // empty' 2>/dev/null || true)"
+  fi
+  if [ -z "$tid" ]; then
+    tid="$("$herdr_bin" pane current 2>/dev/null | jq -r '.result.pane.tab_id // empty' 2>/dev/null || true)"
+  fi
+  printf '%s' "$tid"
+}
+
 # Resolve the directory to open Fresh in: prefer the context's cwd fields, else process cwd.
 resolve_cwd() {
   local dir=""
