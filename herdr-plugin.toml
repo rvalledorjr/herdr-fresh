@@ -16,6 +16,15 @@
 #   2. `fresh --cmd daemon open-file <name> <path:line:col>` only works once that daemon already
 #      exists (confirmed: it returns "Opened N file(s)" against a live daemon, silently n/a
 #      otherwise). So "open file at line" must ensure the workspace's Fresh pane is open first.
+#   3. `herdr plugin pane open`'s `--cwd` also governs where the [[panes]] entry's *relative*
+#      command (`bash scripts/run-fresh-daemon.sh`) gets resolved from — NOT the plugin's own
+#      root. Passing the target repo's cwd there (as early versions of this plugin did) makes
+#      bash look for `scripts/run-fresh-daemon.sh` inside that repo, so the pane spawns and
+#      immediately exits with no visible error (confirmed: exit code 127 in herdr's server log,
+#      the split just flashes and closes). The open-fresh/open-fresh-tab launchers must omit
+#      --cwd entirely (letting herdr default it to the plugin root) and rely on
+#      run-fresh-daemon.sh's own `cd "$(resolve_cwd)"` (common.sh) to move Fresh into the right
+#      directory afterward.
 #
 # Cross-platform packaging follows the same pattern already proven by the herdr-file-viewer
 # plugin installed on this host: platform-gated [[build]]/[[actions]] items, `-windows`-suffixed
@@ -27,7 +36,7 @@
 
 id = "herdr-fresh"
 name = "herdr-fresh"
-version = "0.1.0"
+version = "0.1.1"
 description = "Run Fresh, the terminal IDE, as a file viewer and editor inside a herdr pane."
 min_herdr_version = "0.7.0"
 platforms = ["linux", "macos", "windows"]

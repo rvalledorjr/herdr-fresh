@@ -346,7 +346,45 @@ command = ["bash", "scripts/open-file-in-fresh.sh"]
   still parses with the same zero-duplicate-action-id result as M5 (docs-only milestone, no
   manifest/script logic changed).
 
+### M7 — v0.1.1: fix cross-workspace open + relative-command spawn bug  ✅ (done)
+- **Bug 1 (workspace-scoping):** `open-fresh.sh`/`open-fresh-tab.sh` derived "the current
+  pane/tab/workspace" via `herdr pane current`, which reflects whatever pane the detached herdr
+  CLI subprocess is globally focused on — not the workspace the keybinding was actually invoked
+  from. Invoking the action from a non-focused workspace silently targeted the wrong workspace.
+  Fixed by preferring `HERDR_PLUGIN_CONTEXT_JSON`'s `focused_pane_id`/`tab_id`/`workspace_id`
+  (already injected by herdr per-invocation) via new `resolve_focused_pane_id()`/
+  `resolve_tab_id()` helpers in `common.sh`, and passing `--target-pane`/`--workspace` explicitly
+  to `herdr plugin pane open`.
+- **Bug 2 (relative-command spawn, more severe — the actual root cause of "nothing happens"):**
+  `herdr plugin pane open --cwd <dir>` resolves the `[[panes]]` entry's *relative* command
+  (`bash scripts/run-fresh-daemon.sh`) against that `--cwd`, not the plugin's own root. The
+  launchers were passing the target repo's cwd as `--cwd`, so bash looked for
+  `scripts/run-fresh-daemon.sh` inside the *target repo* instead of the plugin — the pane spawned
+  and immediately exited (confirmed: exit code 127 in herdr's server log) with no visible error,
+  since the split just flashes and closes. This is the same class of bug gotcha #3 already
+  documents for Windows relative-path spawning, but it turns out to affect Linux/macOS too via
+  `--cwd` rather than `CreateProcessW` semantics. Confirmed the sibling `herdr-file-viewer`
+  plugin has the identical fragility (fails loudly there: `plugin_pane_open_failed`, file not
+  found, instead of a silent 127). Fixed by dropping `--cwd` from both launchers' `plugin pane
+  open` calls entirely — herdr then defaults the pane's cwd to the plugin root, so the relative
+  command resolves, and `run-fresh-daemon.sh`'s own `cd "$(resolve_cwd)"` (already in
+  `common.sh`) moves Fresh into the actual target directory afterward.
+- Bumped manifest `version` to `0.1.1` (semver patch: bugfix, no action-id/config-key/interface
+  changes) and tagged `v0.1.1`.
+- **Verified locally** against live herdr 0.7.0 / fresh 0.4.1 processes (not just `bash -n`):
+  - Reproduced bug 2 directly — `herdr plugin pane open ... --cwd <other-repo>` for both
+    `herdr-fresh` and `herdr-file-viewer` fails/silently-exits(127) resolving their relative
+    `[[panes]]` command against that cwd.
+  - Confirmed the fix: same call *without* `--cwd` spawns successfully, `pane.rename` succeeds
+    (the daemon-labeling step), and Fresh's own TUI is visibly running and the daemon lands in
+    the correct final cwd (via the script's own `cd`).
+  - Confirmed bug 1's fix: split-open with a faked `HERDR_PLUGIN_CONTEXT_JSON` for a workspace
+    other than the one `herdr pane current` reports correctly opens/zooms in the *context's*
+    workspace, not the CLI-attached one.
+  - `bash -n` on every launcher and the manifest-lint check both still pass.
+
 ### Post-v1 backlog
+
 - SSH remote-edit action (`fresh deploy@host:/path`) surfaced as a herdr action.
 - Git-review launch action (open Fresh directly in its review/diff mode for the current repo).
 - Devcontainer awareness.

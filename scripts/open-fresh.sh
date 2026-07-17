@@ -15,6 +15,15 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 daemon="$(daemon_name)"
 
 open_pane() {
+  # `plugin pane open` spawns the [[panes]] entry's relative command (`bash
+  # scripts/run-fresh-daemon.sh`) with its cwd resolved against whatever `--cwd` we pass here —
+  # NOT against the plugin's own root. Passing the target repo's cwd here (as this script used
+  # to) makes bash look for `scripts/run-fresh-daemon.sh` inside that repo instead of inside the
+  # plugin, so the pane spawns and immediately exits (code 127) with no visible error: the split
+  # flashes and closes. Omitting --cwd lets herdr default it to the plugin root instead, so the
+  # relative command resolves; run-fresh-daemon.sh's own `cd "$(resolve_cwd)"` (common.sh) is
+  # what actually moves Fresh into the right directory afterward.
+  #
   # `plugin pane open --placement split` targets an existing pane, not "whatever herdr's CLI
   # process is currently attached to" — pass the invoking pane explicitly (from the action's
   # context JSON) or split placement silently lands in the wrong workspace when the action is
@@ -25,7 +34,6 @@ open_pane() {
     --placement split \
     --direction right \
     --target-pane "$current_pane_id" \
-    --cwd "$(resolve_cwd)" \
     --focus
 }
 

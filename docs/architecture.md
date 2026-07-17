@@ -42,6 +42,9 @@ herdr → invokes action (keybinding)
           ▼
    found? → zoom/focus it, done.
    not found? → `herdr plugin pane open --entrypoint fresh --placement split --focus`
+          │  (deliberately omits --cwd: it would resolve the [[panes]] entry's *relative*
+          │  command against the target repo instead of the plugin root, causing a silent
+          │  spawn-then-exit(127) — see "Why the pane runs Fresh directly" below)
           │
           ▼
    herdr-plugin.toml's [[panes]] entry runs scripts/run-fresh-daemon.sh INSIDE the new
@@ -79,6 +82,19 @@ herdr, so it's the only place a daemon can ever be *created*. Every other script
 attaches to an existing daemon (`daemon open-file`) or opens/focuses the pane that will create
 one — none of them try to create a daemon headlessly. See PLAN.md §3.3 gotcha #1 for the full
 verification notes.
+
+## Why open-fresh.sh/open-fresh-tab.sh never pass `--cwd` to `plugin pane open`
+
+`herdr plugin pane open --cwd <dir>` resolves the `[[panes]]` entry's *relative* command
+(`bash scripts/run-fresh-daemon.sh`) against that `--cwd`, not the plugin's own root. Passing
+the target repo's directory there (an earlier version of this plugin did) makes bash look for
+`scripts/run-fresh-daemon.sh` inside the *target repo* instead of the plugin — the pane spawns
+and immediately exits (confirmed: exit code 127) with no visible error, since the split just
+flashes and closes. Omitting `--cwd` lets herdr default the pane's cwd to the plugin root
+instead, so the relative command resolves; `run-fresh-daemon.sh`'s own
+`cd "$(resolve_cwd)"` (in `common.sh`) is what actually moves Fresh into the intended directory
+afterward. See PLAN.md M7 for the verification notes (this also affects the sibling
+`herdr-file-viewer` plugin, which has the same `[[panes]]` shape).
 
 ## Windows differences
 

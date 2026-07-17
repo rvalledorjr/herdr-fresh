@@ -12,6 +12,9 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 daemon="$(daemon_name)"
 
 open_tab() {
+  # See open-fresh.sh's open_pane() for why --cwd must NOT be passed here: it would resolve
+  # the [[panes]] entry's relative command (`bash scripts/run-fresh-daemon.sh`) against the
+  # target repo's cwd instead of the plugin root, causing an invisible spawn-then-exit(127).
   # `plugin pane open --placement tab` opens in whichever workspace herdr's CLI process is
   # currently attached to unless told otherwise — pass the invoking workspace explicitly (from
   # the action's context JSON), or the tab silently opens in the wrong workspace when invoked
@@ -21,7 +24,6 @@ open_tab() {
     --entrypoint fresh \
     --placement tab \
     --workspace "$current_workspace_id" \
-    --cwd "$(resolve_cwd)" \
     --focus
 }
 

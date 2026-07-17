@@ -7,7 +7,7 @@ pane.**
 Open Fresh in a split beside your work (or in its own tab), keep a persistent editing session
 per workspace, and push `path:line` straight into the live editor pane from anywhere.
 
-> **Status: v0.1.0, cross-platform preview.** Split, tab, and open-file-at-line all verified
+> **Status: v0.1.1, cross-platform preview.** Split, tab, and open-file-at-line all verified
 > locally against real herdr 0.7.0 + fresh 0.4.1 via `herdr plugin link` on Linux. Windows
 > `.ps1` launchers exist and are CI-linted (see [docs/windows.md](docs/windows.md)) but haven't
 > had an equivalent real-herdr verification pass yet. See **[PLAN.md](PLAN.md)** for the full
