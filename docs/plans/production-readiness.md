@@ -79,7 +79,7 @@
 | M11.2 | Runtime version/capability detection | 2 | READY | — |
 | M11.3 | Concurrency lock on pane-open | 2 | BLOCKED | M9.1 |
 | M11.4 | Unified single-source config parser | 3 | READY | — |
-| M12.1 | CHANGELOG.md (backfilled) | 3 | READY | — |
+| M12.1 | CHANGELOG.md (backfilled) | 3 | DONE | — |
 | M12.2 | Release workflow + version↔tag gate | 3 | READY | M12.1 |
 | M12.3 | Strengthen CI (shfmt, pins, win runner, md-links) | 3 | READY | M8.1 |
 | M12.4 | Standalone `herdr-fresh open` helper | 3 | READY | M9.4 |
@@ -359,7 +359,8 @@ verified. `Needs:` flags a task requiring resources the default agent may lack (
 # Tier 3 — Release engineering & maintainability
 
 ### Task M12.1 — CHANGELOG.md (backfilled)
-- **Status:** READY · **Depends on:** — · **Tier:** 3
+- **Status:** DONE — created `CHANGELOG.md` (Keep a Changelog), backfilled v0.1.0/v0.1.1 from
+  PLAN.md M0–M7, with an `Unreleased` section wired into the trunk-based flow. · **Tier:** 3
 - **Why:** PLAN §8 promises "CHANGELOG.md from tags" but none exists; v0.1.0/v0.1.1 have no
   user-facing changelog.
 - **Files:** `CHANGELOG.md` (new).
